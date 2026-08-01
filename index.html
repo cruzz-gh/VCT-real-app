@@ -6,44 +6,66 @@
   <title>VCT Live Matches</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; max-width: 600px; margin: 0 auto; }
-    h1 { text-align: center; color: #ff4655; }
-    .card { background: #1e293b; padding: 15px; margin-bottom: 12px; border-radius: 8px; border-left: 4px solid #ff4655; }
-    .tournament { font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; }
-    .teams { font-size: 1.1rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-    .score { background: #0f172a; padding: 4px 10px; border-radius: 4px; color: #38bdf8; }
-    .loading { text-align: center; color: #94a3b8; margin-top: 40px; }
+    h1 { text-align: center; color: #ff4655; margin-bottom: 24px; }
+    .card { background: #1e293b; padding: 16px; margin-bottom: 12px; border-radius: 8px; border-left: 4px solid #ff4655; }
+    .tournament { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; }
+    .teams { font-size: 1.05rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+    .score { background: #0f172a; padding: 4px 10px; border-radius: 4px; color: #38bdf8; font-weight: 700; }
+    .status-msg { text-align: center; color: #94a3b8; margin-top: 40px; font-size: 0.95rem; }
   </style>
 </head>
 <body>
 
   <h1>VCT Match Results</h1>
-  <div id="results" class="loading">Loading live matches...</div>
+  <div id="results" class="status-msg">Loading live matches...</div>
 
   <script>
     async function fetchVCT() {
       const container = document.getElementById('results');
-      try {
-        const res = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://vlr.orlandomm.net/api/v1/results'));
-        const json = await res.json();
-        
-        if (json.data && json.data.segments) {
-          container.innerHTML = '';
-          json.data.segments.slice(0, 10).forEach(match => {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.innerHTML = `
-              <div class="tournament">${match.tournament || 'VCT Match'}</div>
-              <div class="teams">
-                <span>${match.team1} vs ${match.team2}</span>
-                <span class="score">${match.score1 || '0'} - ${match.score2 || '0'}</span>
-              </div>
-            `;
-            container.appendChild(card);
-          });
+      
+      // Try Direct Public VLR API
+      const endpoints = [
+        'https://vlr.orlandomm.net/api/v1/results',
+        'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://vlr.orlandomm.net/api/v1/results')
+      ];
+
+      for (const url of endpoints) {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) continue;
+          
+          const json = await res.json();
+          const matches = json.data?.segments || json.data || [];
+
+          if (Array.isArray(matches) && matches.length > 0) {
+            container.innerHTML = '';
+            matches.slice(0, 10).forEach(match => {
+              const card = document.createElement('div');
+              card.className = 'card';
+              
+              const team1 = match.team1 || match.teams?.[0] || 'TBD';
+              const team2 = match.team2 || match.teams?.[1] || 'TBD';
+              const score1 = match.score1 ?? match.scores?.[0] ?? '0';
+              const score2 = match.score2 ?? match.scores?.[1] ?? '0';
+              const tournament = match.tournament || match.event || 'VCT Tournament';
+
+              card.innerHTML = `
+                <div class="tournament">${tournament}</div>
+                <div class="teams">
+                  <span>${team1} vs ${team2}</span>
+                  <span class="score">${score1} - ${score2}</span>
+                </div>
+              `;
+              container.appendChild(card);
+            });
+            return; // Exit after successful render
+          }
+        } catch (err) {
+          console.warn('Endpoint failed:', url, err);
         }
-      } catch (err) {
-        container.innerHTML = `<p style="color: #ef4444; text-align: center;">Failed to load match data.</p>`;
       }
+
+      container.innerHTML = `<p style="color: #ef4444;">Unable to load matches. Please refresh in a moment.</p>`;
     }
 
     fetchVCT();
