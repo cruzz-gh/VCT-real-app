@@ -2,8 +2,23 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
 
+  // Helper function to decode HTML entities & clean whitespace
+  function cleanText(str) {
+    if (!str) return '';
+    return str
+      .replace(/&ndash;/gi, '–')
+      .replace(/&mdash;/gi, '—')
+      .replace(/&amp;/gi, '&')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#039;/gi, "'")
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/<[^>]+>/g, '') // Strip leftover HTML tags
+      .replace(/\s+/g, ' ')   // Normalize spaces/newlines
+      .trim();
+  }
+
   try {
-    // Fetch VLR's live results HTML directly
     const response = await fetch('https://www.vlr.gg/matches/results', {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
@@ -19,34 +34,32 @@ export default async function handler(req, res) {
     const html = await response.text();
     const matches = [];
 
-    // Regex to capture match cards from VLR.gg HTML
     const cardRegex = /<a[^>]*class="[^"]*match-item[^"]*"[^>]*>([\s\S]*?)<\/a>/g;
     let cardMatch;
 
     while ((cardMatch = cardRegex.exec(html)) !== null && matches.length < 10) {
       const cardHtml = cardMatch[1];
 
-      // Extract Tournament / Event
+      // Extract Tournament / Stage
       const eventMatch = cardHtml.match(/class="match-item-event-series[^"]*"[^>]*>([\s\S]*?)<\/div>/i) ||
                          cardHtml.match(/class="match-item-event[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
-      let tournament = eventMatch ? eventMatch[1].replace(/<[^>]+>/g, '').trim() : 'VCT MATCH';
-      tournament = tournament.replace(/\s+/g, ' ');
+      
+      let tournament = eventMatch ? cleanText(eventMatch[1]) : 'VCT MATCH';
 
       // Extract Team Names
       const teamMatches = [...cardHtml.matchAll(/class="match-item-vs-team-name[^"]*"[^>]*>([\s\S]*?)<\/div>/gi)];
-      const team1 = teamMatches[0] ? teamMatches[0][1].replace(/<[^>]+>/g, '').trim() : null;
-      const team2 = teamMatches[1] ? teamMatches[1][1].replace(/<[^>]+>/g, '').trim() : null;
+      const team1 = teamMatches[0] ? cleanText(teamMatches[0][1]) : null;
+      const team2 = teamMatches[1] ? cleanText(teamMatches[1][1]) : null;
 
       // Extract Scores
       const scoreMatches = [...cardHtml.matchAll(/class="match-item-vs-team-score[^"]*"[^>]*>([\s\S]*?)<\/div>/gi)];
-      const s1Raw = scoreMatches[0] ? scoreMatches[0][1].replace(/<[^>]+>/g, '').trim() : null;
-      const s2Raw = scoreMatches[1] ? scoreMatches[1][1].replace(/<[^>]+>/g, '').trim() : null;
+      const s1Raw = scoreMatches[0] ? cleanText(scoreMatches[0][1]) : null;
+      const s2Raw = scoreMatches[1] ? cleanText(scoreMatches[1][1]) : null;
 
       const s1 = parseInt(s1Raw, 10);
       const s2 = parseInt(s2Raw, 10);
 
       if (team1 && team2 && !isNaN(s1) && !isNaN(s2)) {
-        // Determine winner index based on score
         let winnerIdx = -1;
         if (s1 > s2) winnerIdx = 0;
         else if (s2 > s1) winnerIdx = 1;
