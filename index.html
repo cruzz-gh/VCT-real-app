@@ -8,9 +8,17 @@
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; max-width: 600px; margin: 0 auto; }
     h1 { text-align: center; color: #ff4655; margin-bottom: 24px; }
     .card { background: #1e293b; padding: 16px; margin-bottom: 12px; border-radius: 8px; border-left: 4px solid #ff4655; }
-    .tournament { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; }
-    .teams { font-size: 1.05rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
-    .score { background: #0f172a; padding: 6px 12px; border-radius: 4px; color: #38bdf8; font-weight: 700; white-space: nowrap; }
+    .tournament { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px; }
+    
+    /* Team styling for Winner vs Loser */
+    .teams { font-size: 1.05rem; display: flex; justify-content: space-between; align-items: center; }
+    .team-names { display: flex; gap: 6px; align-items: center; }
+    .winner { color: #ffffff; font-weight: 700; }
+    .winner::after { content: " ★"; color: #22c55e; font-size: 0.85rem; } /* Green star for winner */
+    .loser { color: #64748b; font-weight: 400; }
+    .vs-divider { color: #475569; font-size: 0.85rem; margin: 0 4px; }
+
+    .score { background: #0f172a; padding: 6px 12px; border-radius: 4px; color: #38bdf8; font-weight: 700; white-space: nowrap; border: 1px solid #334155; }
     .status-msg { text-align: center; color: #94a3b8; margin-top: 40px; font-size: 0.95rem; }
     .badge { font-size: 0.65rem; background: #334155; color: #cbd5e1; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
   </style>
@@ -21,15 +29,14 @@
   <div id="results" class="status-msg">Loading live matches...</div>
 
   <script>
-    // Hardcoded fallback dataset so the app NEVER displays an error screen
     const backupMatches = [
-      { tournament: 'VCT 2026: PACIFIC STAGE 2', team1: 'T1', team2: 'DetonatioN FocusMe', score: '2 - 1' },
-      { tournament: 'VCT 2026: AMERICAS STAGE 2', team1: 'Evil Geniuses', team2: 'MIBR', score: '2 - 0' },
-      { tournament: 'VCT 2026: AMERICAS STAGE 2', team1: 'Cloud9', team2: 'LOUD', score: '1 - 2' },
-      { tournament: 'VCT 2026: EMEA STAGE 2', team1: 'GIANTX', team2: 'Team Heretics', score: '0 - 2' },
-      { tournament: 'VCT 2026: EMEA STAGE 2', team1: 'BBL Esports', team2: 'Gentle Mates', score: '2 - 1' },
-      { tournament: 'VCT 2026: PACIFIC STAGE 2', team1: 'Global Esports', team2: 'Gen.G', score: '0 - 2' },
-      { tournament: 'VCT 2026: PACIFIC STAGE 2', team1: 'Team Secret', team2: 'Paper Rex', score: '1 - 2' }
+      { tournament: 'VCT 2026: PACIFIC STAGE 2', team1: 'T1', team2: 'DetonatioN FocusMe', s1: 2, s2: 1 },
+      { tournament: 'VCT 2026: AMERICAS STAGE 2', team1: 'Evil Geniuses', team2: 'MIBR', s1: 2, s2: 0 },
+      { tournament: 'VCT 2026: AMERICAS STAGE 2', team1: 'Cloud9', team2: 'LOUD', s1: 1, s2: 2 },
+      { tournament: 'VCT 2026: EMEA STAGE 2', team1: 'GIANTX', team2: 'Team Heretics', s1: 0, s2: 2 },
+      { tournament: 'VCT 2026: EMEA STAGE 2', team1: 'BBL Esports', team2: 'Gentle Mates', s1: 2, s2: 1 },
+      { tournament: 'VCT 2026: PACIFIC STAGE 2', team1: 'Global Esports', team2: 'Gen.G', s1: 0, s2: 2 },
+      { tournament: 'VCT 2026: PACIFIC STAGE 2', team1: 'Team Secret', team2: 'Paper Rex', s1: 1, s2: 2 }
     ];
 
     function renderMatches(matches, isBackup = false) {
@@ -39,13 +46,30 @@
       matches.forEach(m => {
         const card = document.createElement('div');
         card.className = 'card';
+
+        // Determine winner
+        let team1Class = '';
+        let team2Class = '';
+
+        if (m.s1 > m.s2) {
+          team1Class = 'winner';
+          team2Class = 'loser';
+        } else if (m.s2 > m.s1) {
+          team1Class = 'loser';
+          team2Class = 'winner';
+        }
+
         card.innerHTML = `
           <div class="tournament">
             ${m.tournament} ${isBackup ? '<span class="badge">Cached</span>' : ''}
           </div>
           <div class="teams">
-            <span>${m.team1} vs ${m.team2}</span>
-            <span class="score">${m.score}</span>
+            <div class="team-names">
+              <span class="${team1Class}">${m.team1}</span>
+              <span class="vs-divider">vs</span>
+              <span class="${team2Class}">${m.team2}</span>
+            </div>
+            <span class="score">${m.s1} - ${m.s2}</span>
           </div>
         `;
         container.appendChild(card);
@@ -82,29 +106,23 @@
               const team1 = team1Obj.name || m.team1;
               const team2 = team2Obj.name || m.team2;
 
-              let s1 = team1Obj.score;
-              let s2 = team2Obj.score;
-
-              let scoreDisplay = 'VS';
-              if (s1 !== undefined && s2 !== undefined && s1 !== null && s2 !== null) {
-                scoreDisplay = `${s1} - ${s2}`;
-              } else if (m.score && m.score !== '-') {
-                scoreDisplay = m.score;
-              }
+              let s1 = parseInt(team1Obj.score ?? m.score1 ?? 0, 10);
+              let s2 = parseInt(team2Obj.score ?? m.score2 ?? 0, 10);
 
               if (team1 && team2) {
                 parsed.push({
                   tournament: m.tournament || m.event || 'VCT Tournament',
                   team1,
                   team2,
-                  score: scoreDisplay
+                  s1,
+                  s2
                 });
               }
             }
 
             if (parsed.length > 0) {
               renderMatches(parsed, false);
-              return; // Live fetch succeeded
+              return;
             }
           }
         } catch (err) {
@@ -112,7 +130,7 @@
         }
       }
 
-      // If all live network fetches fail/get blocked, render the backup dataset
+      // Fallback
       renderMatches(backupMatches, true);
     }
 
