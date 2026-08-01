@@ -1,32 +1,13 @@
-const express = require('express');
 const cheerio = require('cheerio');
 
-const app = express();
-
-// Root route handler
-app.get('/', (req, res) => {
-  res.setHeader('Content-Type', 'text/html');
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-    <head><title>VCT API</title></head>
-    <body style="font-family: sans-serif; padding: 20px;">
-      <h1>VCT API is Running</h1>
-      <p>Access data at <a href="/api/vct">/api/vct</a></p>
-    </body>
-    </html>
-  `);
-});
-
-// API route handler
-app.get('/api/vct', async (req, res) => {
+module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
 
   try {
     const response = await fetch('https://www.vlr.gg/matches/results', {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
     });
 
@@ -58,6 +39,4 @@ app.get('/api/vct', async (req, res) => {
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
-});
-
-module.exports = app;
+};
