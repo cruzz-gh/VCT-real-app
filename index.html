@@ -11,10 +11,10 @@
     .tournament { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px; }
     
     .teams { font-size: 1.05rem; display: flex; justify-content: space-between; align-items: center; }
-    .team-names { display: flex; gap: 6px; align-items: center; max-width: 75%; }
-    .winner { color: #ffffff; font-weight: 700; }
-    .winner::after { content: " ★"; color: #22c55e; font-size: 0.85rem; }
-    .loser { color: #64748b; font-weight: 400; }
+    .team-names { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; max-width: 75%; }
+    .winner { color: #ffffff; font-weight: 700; white-space: nowrap; }
+    .winner::after { content: " ★"; color: #22c55e; font-size: 0.85rem; display: inline-block; }
+    .loser { color: #64748b; font-weight: 400; white-space: nowrap; }
     .vs-divider { color: #475569; font-size: 0.85rem; margin: 0 4px; }
 
     .score { background: #0f172a; padding: 6px 12px; border-radius: 4px; color: #38bdf8; font-weight: 700; white-space: nowrap; border: 1px solid #334155; }
@@ -28,13 +28,17 @@
   <div id="results" class="status-msg">Loading live matches...</div>
 
   <script>
-    // Solid fallback dataset with guaranteed numbers & correct winners
+    /*
+      Corrected static fallback array:
+      winnerIdx: 0 -> Team 1 (left) won
+      winnerIdx: 1 -> Team 2 (right) won
+    */
     const backupMatches = [
-      { tournament: 'VCT 2026: PACIFIC STAGE 2', team1: 'T1', team2: 'DetonatioN FocusMe', s1: 2, s2: 1, winnerIdx: 0 },
-      { tournament: 'VCT 2026: AMERICAS STAGE 2', team1: 'Evil Geniuses', team2: 'MIBR', s1: 2, s2: 0, winnerIdx: 0 },
-      { tournament: 'VCT 2026: AMERICAS STAGE 2', team1: 'Cloud9', team2: 'LOUD', s1: 1, s2: 2, winnerIdx: 1 },
+      { tournament: 'VCT 2026: PACIFIC STAGE 2', team1: 'T1', team2: 'DetonatioN FocusMe', s1: 2, s2: 0, winnerIdx: 0 },
+      { tournament: 'VCT 2026: AMERICAS STAGE 2', team1: 'Evil Geniuses', team2: 'MIBR', s1: 0, s2: 2, winnerIdx: 1 },
+      { tournament: 'VCT 2026: AMERICAS STAGE 2', team1: 'Cloud9', team2: 'LOUD', s1: 2, s2: 1, winnerIdx: 0 },
       { tournament: 'VCT 2026: EMEA STAGE 2', team1: 'GIANTX', team2: 'Team Heretics', s1: 0, s2: 2, winnerIdx: 1 },
-      { tournament: 'VCT 2026: EMEA STAGE 2', team1: 'BBL Esports', team2: 'Gentle Mates', s1: 2, s2: 1, winnerIdx: 0 },
+      { tournament: 'VCT 2026: EMEA STAGE 2', team1: 'BBL Esports', team2: 'Gentle Mates', s1: 1, s2: 2, winnerIdx: 1 },
       { tournament: 'VCT 2026: PACIFIC STAGE 2', team1: 'Global Esports', team2: 'Gen.G', s1: 0, s2: 2, winnerIdx: 1 },
       { tournament: 'VCT 2026: PACIFIC STAGE 2', team1: 'Team Secret', team2: 'Paper Rex', s1: 1, s2: 2, winnerIdx: 1 }
     ];
@@ -56,7 +60,6 @@
         const team1Class = (m.winnerIdx === 0) ? 'winner' : (m.winnerIdx === 1 ? 'loser' : '');
         const team2Class = (m.winnerIdx === 1) ? 'winner' : (m.winnerIdx === 0 ? 'loser' : '');
 
-        // Fallback display if score isn't a valid number
         const scoreDisplay = (m.s1 !== null && m.s2 !== null) ? `${m.s1} - ${m.s2}` : 'VS';
 
         card.innerHTML = `
@@ -106,11 +109,9 @@
               const team1 = t1Obj.name || m.team1 || 'TBD';
               const team2 = t2Obj.name || m.team2 || 'TBD';
 
-              // Multi-source score extraction
               let s1 = parseScore(t1Obj.score) ?? parseScore(m.score1);
               let s2 = parseScore(t2Obj.score) ?? parseScore(m.score2);
 
-              // Extract from string format like "2 - 1" if available
               if ((s1 === null || s2 === null) && typeof m.score === 'string') {
                 const parts = m.score.split('-').map(p => parseScore(p.trim()));
                 if (parts.length === 2 && parts[0] !== null && parts[1] !== null) {
@@ -119,7 +120,6 @@
                 }
               }
 
-              // Calculate Winner Index
               let winnerIdx = -1;
               if (t1Obj.is_winner || (s1 !== null && s2 !== null && s1 > s2)) {
                 winnerIdx = 0;
@@ -147,7 +147,6 @@
         }
       }
 
-      // Render clean backup data if API fails or returns incomplete values
       renderMatches(backupMatches, true);
     }
 
