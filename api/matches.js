@@ -1,8 +1,14 @@
 export default async function handler(req, res) {
+  // Robust CORS headers to allow requests from local editors like Koder and production web/mobile apps
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Content-Type', 'application/json');
 
-  // Helper function to decode HTML entities & clean whitespace
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   function cleanText(str) {
     if (!str) return '';
     return str
@@ -13,8 +19,8 @@ export default async function handler(req, res) {
       .replace(/&#039;/gi, "'")
       .replace(/&lt;/gi, '<')
       .replace(/&gt;/gi, '>')
-      .replace(/<[^>]+>/g, '') // Strip leftover HTML tags
-      .replace(/\s+/g, ' ')   // Normalize spaces/newlines
+      .replace(/<[^>]+>/g, '')
+      .replace(/\s+/g, ' ')
       .trim();
   }
 
@@ -40,18 +46,15 @@ export default async function handler(req, res) {
     while ((cardMatch = cardRegex.exec(html)) !== null && matches.length < 10) {
       const cardHtml = cardMatch[1];
 
-      // Extract Tournament / Stage
       const eventMatch = cardHtml.match(/class="match-item-event-series[^"]*"[^>]*>([\s\S]*?)<\/div>/i) ||
                          cardHtml.match(/class="match-item-event[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
       
       let tournament = eventMatch ? cleanText(eventMatch[1]) : 'VCT MATCH';
 
-      // Extract Team Names
       const teamMatches = [...cardHtml.matchAll(/class="match-item-vs-team-name[^"]*"[^>]*>([\s\S]*?)<\/div>/gi)];
       const team1 = teamMatches[0] ? cleanText(teamMatches[0][1]) : null;
       const team2 = teamMatches[1] ? cleanText(teamMatches[1][1]) : null;
 
-      // Extract Scores
       const scoreMatches = [...cardHtml.matchAll(/class="match-item-vs-team-score[^"]*"[^>]*>([\s\S]*?)<\/div>/gi)];
       const s1Raw = scoreMatches[0] ? cleanText(scoreMatches[0][1]) : null;
       const s2Raw = scoreMatches[1] ? cleanText(scoreMatches[1][1]) : null;
