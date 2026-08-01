@@ -23,10 +23,9 @@
     async function fetchVCT() {
       const container = document.getElementById('results');
       
-      // Try Direct Public VLR API
       const endpoints = [
-        'https://vlr.orlandomm.net/api/v1/results',
-        'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://vlr.orlandomm.net/api/v1/results')
+        'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://vlr.orlandomm.net/api/v1/results'),
+        'https://vlr.orlandomm.net/api/v1/results'
       ];
 
       for (const url of endpoints) {
@@ -43,10 +42,14 @@
               const card = document.createElement('div');
               card.className = 'card';
               
-              const team1 = match.team1 || match.teams?.[0] || 'TBD';
-              const team2 = match.team2 || match.teams?.[1] || 'TBD';
-              const score1 = match.score1 ?? match.scores?.[0] ?? '0';
-              const score2 = match.score2 ?? match.scores?.[1] ?? '0';
+              // Safely extract team names whether string or object
+              const team1 = typeof match.teams?.[0] === 'object' ? match.teams[0].name : (match.team1 || match.teams?.[0] || 'TBD');
+              const team2 = typeof match.teams?.[1] === 'object' ? match.teams[1].name : (match.team2 || match.teams?.[1] || 'TBD');
+              
+              // Safely extract scores
+              const score1 = match.teams?.[0]?.score ?? match.score1 ?? match.scores?.[0] ?? '0';
+              const score2 = match.teams?.[1]?.score ?? match.score2 ?? match.scores?.[1] ?? '0';
+              
               const tournament = match.tournament || match.event || 'VCT Tournament';
 
               card.innerHTML = `
@@ -58,14 +61,14 @@
               `;
               container.appendChild(card);
             });
-            return; // Exit after successful render
+            return;
           }
         } catch (err) {
           console.warn('Endpoint failed:', url, err);
         }
       }
 
-      container.innerHTML = `<p style="color: #ef4444;">Unable to load matches. Please refresh in a moment.</p>`;
+      container.innerHTML = `<p style="color: #ef4444;">Unable to load matches. Please refresh.</p>`;
     }
 
     fetchVCT();
