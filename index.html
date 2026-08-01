@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VCT Live Matches</title>
+  <title>VCT Match Results</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; max-width: 600px; margin: 0 auto; }
     h1 { text-align: center; color: #ff4655; margin-bottom: 24px; }
@@ -28,103 +28,45 @@
   <div id="results" class="status-msg">Loading live matches...</div>
 
   <script>
-    // Corrected dataset matching actual VCT Stage results
-    const verifiedBackup = [
-      { tournament: 'VCT PACIFIC', team1: 'T1', team2: 'DetonatioN FocusMe', s1: 2, s2: 0, winnerIdx: 0 },
-      { tournament: 'VCT AMERICAS', team1: 'Evil Geniuses', team2: 'MIBR', s1: 1, s2: 2, winnerIdx: 1 },
-      { tournament: 'VCT AMERICAS', team1: 'Cloud9', team2: 'LOUD', s1: 2, s2: 1, winnerIdx: 0 },
-      { tournament: 'VCT EMEA', team1: 'GIANTX', team2: 'Team Heretics', s1: 0, s2: 2, winnerIdx: 1 },
-      { tournament: 'VCT EMEA', team1: 'BBL Esports', team2: 'Gentle Mates', s1: 1, s2: 2, winnerIdx: 1 },
-      { tournament: 'VCT PACIFIC', team1: 'Global Esports', team2: 'Gen.G', s1: 0, s2: 2, winnerIdx: 1 },
-      { tournament: 'VCT PACIFIC', team1: 'Team Secret', team2: 'Paper Rex', s1: 0, s2: 2, winnerIdx: 1 }
-    ];
-
-    function renderMatches(matches, isBackup = false) {
-      const container = document.getElementById('results');
-      container.innerHTML = '';
-
-      matches.forEach(m => {
-        const card = document.createElement('div');
-        card.className = 'card';
-
-        const team1Class = (m.winnerIdx === 0) ? 'winner' : (m.winnerIdx === 1 ? 'loser' : '');
-        const team2Class = (m.winnerIdx === 1) ? 'winner' : (m.winnerIdx === 0 ? 'loser' : '');
-
-        card.innerHTML = `
-          <div class="tournament">
-            ${m.tournament} ${isBackup ? '<span class="badge">Cached</span>' : ''}
-          </div>
-          <div class="teams">
-            <div class="team-names">
-              <span class="${team1Class}">${m.team1}</span>
-              <span class="vs-divider">vs</span>
-              <span class="${team2Class}">${m.team2}</span>
-            </div>
-            <span class="score">${m.s1} - ${m.s2}</span>
-          </div>
-        `;
-        container.appendChild(card);
-      });
-    }
-
     async function loadMatches() {
-      // Primary API endpoint using vlrggapi
-      const apis = [
-        'https://vlrggapi.vercel.app/match?q=results',
-        'https://vlr.orlandomm.net/api/v1/results'
-      ];
+      const container = document.getElementById('results');
 
-      for (const endpoint of apis) {
-        try {
-          const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(endpoint)}`);
-          if (!res.ok) continue;
+      try {
+        const res = await fetch('/api/matches');
+        const data = await res.json();
 
-          const json = await res.json();
-          const matches = json.data?.segments || json.data || json.segments || [];
+        if (data.success && data.matches.length > 0) {
+          container.innerHTML = '';
 
-          if (Array.isArray(matches) && matches.length > 0) {
-            const parsed = [];
-            for (const m of matches) {
-              if (parsed.length >= 10) break;
+          data.matches.forEach(m => {
+            const card = document.createElement('div');
+            card.className = 'card';
 
-              const teams = m.teams || [];
-              const team1 = teams[0]?.name || m.team1;
-              const team2 = teams[1]?.name || m.team2;
+            const team1Class = (m.winnerIdx === 0) ? 'winner' : (m.winnerIdx === 1 ? 'loser' : '');
+            const team2Class = (m.winnerIdx === 1) ? 'winner' : (m.winnerIdx === 0 ? 'loser' : '');
 
-              let s1 = parseInt(teams[0]?.score ?? m.score1 ?? 0, 10);
-              let s2 = parseInt(teams[1]?.score ?? m.score2 ?? 0, 10);
-
-              if (isNaN(s1) || isNaN(s2)) continue;
-
-              // Determine winner index
-              let winnerIdx = -1;
-              if (teams[0]?.is_winner || s1 > s2) winnerIdx = 0;
-              else if (teams[1]?.is_winner || s2 > s1) winnerIdx = 1;
-
-              if (team1 && team2) {
-                parsed.push({
-                  tournament: m.tournament || m.event || 'VCT MATCH',
-                  team1,
-                  team2,
-                  s1,
-                  s2,
-                  winnerIdx
-                });
-              }
-            }
-
-            if (parsed.length > 0) {
-              renderMatches(parsed, false);
-              return;
-            }
-          }
-        } catch (e) {
-          console.warn('Fetch failed:', endpoint);
+            card.innerHTML = `
+              <div class="tournament">
+                ${m.tournament} ${data.cached ? '<span class="badge">Cached</span>' : ''}
+              </div>
+              <div class="teams">
+                <div class="team-names">
+                  <span class="${team1Class}">${m.team1}</span>
+                  <span class="vs-divider">vs</span>
+                  <span class="${team2Class}">${m.team2}</span>
+                </div>
+                <span class="score">${m.s1} - ${m.s2}</span>
+              </div>
+            `;
+            container.appendChild(card);
+          });
+          return;
         }
+      } catch (err) {
+        console.error('Failed to load matches:', err);
       }
 
-      // Fallback to verified manual dataset if proxies fail
-      renderMatches(verifiedBackup, true);
+      container.innerHTML = `<p style="color: #ef4444;">Unable to load matches. Please refresh.</p>`;
     }
 
     loadMatches();
