@@ -42,13 +42,21 @@
               const card = document.createElement('div');
               card.className = 'card';
               
-              // Safely extract team names whether string or object
-              const team1 = typeof match.teams?.[0] === 'object' ? match.teams[0].name : (match.team1 || match.teams?.[0] || 'TBD');
-              const team2 = typeof match.teams?.[1] === 'object' ? match.teams[1].name : (match.team2 || match.teams?.[1] || 'TBD');
+              // Extract Team Names
+              const team1 = typeof match.teams?.[0] === 'object' ? match.teams[0].name : (match.team1 || 'TBD');
+              const team2 = typeof match.teams?.[1] === 'object' ? match.teams[1].name : (match.team2 || 'TBD');
               
-              // Safely extract scores
-              const score1 = match.teams?.[0]?.score ?? match.score1 ?? match.scores?.[0] ?? '0';
-              const score2 = match.teams?.[1]?.score ?? match.score2 ?? match.scores?.[1] ?? '0';
+              // Comprehensive Score Extraction
+              let s1 = match.teams?.[0]?.score ?? match.score1 ?? match.scores?.[0];
+              let s2 = match.teams?.[1]?.score ?? match.score2 ?? match.scores?.[1];
+
+              // Handle full map score strings like "2 - 1" or fallback
+              let scoreText = '0 - 0';
+              if (match.score) {
+                scoreText = match.score;
+              } else if (s1 !== undefined && s2 !== undefined) {
+                scoreText = `${s1} - ${s2}`;
+              }
               
               const tournament = match.tournament || match.event || 'VCT Tournament';
 
@@ -56,7 +64,7 @@
                 <div class="tournament">${tournament}</div>
                 <div class="teams">
                   <span>${team1} vs ${team2}</span>
-                  <span class="score">${score1} - ${score2}</span>
+                  <span class="score">${scoreText}</span>
                 </div>
               `;
               container.appendChild(card);
