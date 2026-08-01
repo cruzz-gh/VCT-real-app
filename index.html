@@ -60,7 +60,7 @@
           return;
         }
       } catch (err) {
-        console.error('Failed to load live matches:', err);
+        console.error('Fetch error:', err);
       }
 
       container.innerHTML = `<p style="color: #ef4444;">Unable to load live match data. Please try again later.</p>`;
