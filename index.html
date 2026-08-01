@@ -23,44 +23,52 @@
     async function loadMatches() {
       const container = document.getElementById('results');
 
-      const endpoints = [
-        'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://vlr.orlandomm.net/api/v1/results'),
-        'https://corsproxy.io/?' + encodeURIComponent('https://vlr.orlandomm.net/api/v1/results')
+      // Array of proxies to try sequentially if one fails/blocks
+      const targetApi = 'https://vlr.orlandomm.net/api/v1/results';
+      const proxyUrls = [
+        `https://corsproxy.io/?${encodeURIComponent(targetApi)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(targetApi)}`,
+        `https://thingproxy.freeboard.io/fetch/${targetApi}`
       ];
 
-      for (const url of endpoints) {
+      for (const url of proxyUrls) {
         try {
           const res = await fetch(url);
           if (!res.ok) continue;
 
-          const json = await res.json();
-          const matches = json.data?.segments || json.data || [];
+          const text = await res.text();
+          let json;
+          try {
+            json = JSON.parse(text);
+          } catch (e) {
+            continue; // Not valid JSON (e.g. proxy error page)
+          }
 
-          if (Array.isArray(matches) && matches.length > 0) {
+          // vlr.orlandomm.net returns data inside json.data array
+          const rawMatches = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
+
+          if (rawMatches.length > 0) {
             container.innerHTML = '';
             let renderedCount = 0;
 
-            matches.forEach(m => {
-              if (renderedCount >= 10) return;
+            for (const m of rawMatches) {
+              if (renderedCount >= 10) break;
 
-              // Team extraction
-              const t1 = m.teams?.[0];
-              const t2 = m.teams?.[1];
-              const team1 = typeof t1 === 'object' ? (t1.name || t1.tag) : (m.team1 || 'TBD');
-              const team2 = typeof t2 === 'object' ? (t2.name || t2.tag) : (m.team2 || 'TBD');
+              const teams = m.teams || [];
+              const team1Obj = teams[0] || {};
+              const team2Obj = teams[1] || {};
 
-              // Score extraction logic specifically for VLR results
-              let s1 = typeof t1 === 'object' ? t1.score : m.score1;
-              let s2 = typeof t2 === 'object' ? t2.score : m.score2;
+              const team1 = team1Obj.name || m.team1 || 'TBD';
+              const team2 = team2Obj.name || m.team2 || 'TBD';
 
-              let scoreDisplay = '';
-              if (s1 !== undefined && s2 !== undefined && s1 !== null && s2 !== null) {
-                scoreDisplay = `${s1} - ${s2}`;
+              let score1 = team1Obj.score;
+              let score2 = team2Obj.score;
+
+              let scoreDisplay = 'VS';
+              if (score1 !== undefined && score2 !== undefined && score1 !== null && score2 !== null) {
+                scoreDisplay = `${score1} - ${score2}`;
               } else if (m.score && m.score !== '-') {
                 scoreDisplay = m.score;
-              } else {
-                // If the match is unplayed/scheduled without scores, skip it
-                return;
               }
 
               const tournament = m.tournament || m.event || 'VCT Tournament';
@@ -76,16 +84,16 @@
               `;
               container.appendChild(card);
               renderedCount++;
-            });
+            }
 
-            if (renderedCount > 0) return; // Exit on successful render
+            if (renderedCount > 0) return; // Successfully displayed matches!
           }
         } catch (err) {
-          console.warn('Endpoint failed:', url, err);
+          console.warn('Proxy attempt failed:', url, err);
         }
       }
 
-      container.innerHTML = `<p style="color: #ef4444;">Unable to load match results right now. Please refresh.</p>`;
+      container.innerHTML = `<p style="color: #ef4444;">Unable to load match results right now. Please refresh in a moment.</p>`;
     }
 
     loadMatches();
