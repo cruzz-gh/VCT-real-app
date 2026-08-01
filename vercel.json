@@ -1,0 +1,6 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/vct", "destination": "/api/vct.js" }
+  ]
+}
