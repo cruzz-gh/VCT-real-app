@@ -10,11 +10,10 @@
     .card { background: #1e293b; padding: 16px; margin-bottom: 12px; border-radius: 8px; border-left: 4px solid #ff4655; }
     .tournament { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px; }
     
-    /* Team styling for Winner vs Loser */
     .teams { font-size: 1.05rem; display: flex; justify-content: space-between; align-items: center; }
     .team-names { display: flex; gap: 6px; align-items: center; }
     .winner { color: #ffffff; font-weight: 700; }
-    .winner::after { content: " ★"; color: #22c55e; font-size: 0.85rem; } /* Green star for winner */
+    .winner::after { content: " ★"; color: #22c55e; font-size: 0.85rem; }
     .loser { color: #64748b; font-weight: 400; }
     .vs-divider { color: #475569; font-size: 0.85rem; margin: 0 4px; }
 
@@ -29,14 +28,15 @@
   <div id="results" class="status-msg">Loading live matches...</div>
 
   <script>
+    // Corrected dataset: team1, team2, score1, score2, and explicit winner index (0 for team1, 1 for team2)
     const backupMatches = [
-      { tournament: 'VCT 2026: PACIFIC STAGE 2', team1: 'T1', team2: 'DetonatioN FocusMe', s1: 2, s2: 1 },
-      { tournament: 'VCT 2026: AMERICAS STAGE 2', team1: 'Evil Geniuses', team2: 'MIBR', s1: 2, s2: 0 },
-      { tournament: 'VCT 2026: AMERICAS STAGE 2', team1: 'Cloud9', team2: 'LOUD', s1: 1, s2: 2 },
-      { tournament: 'VCT 2026: EMEA STAGE 2', team1: 'GIANTX', team2: 'Team Heretics', s1: 0, s2: 2 },
-      { tournament: 'VCT 2026: EMEA STAGE 2', team1: 'BBL Esports', team2: 'Gentle Mates', s1: 2, s2: 1 },
-      { tournament: 'VCT 2026: PACIFIC STAGE 2', team1: 'Global Esports', team2: 'Gen.G', s1: 0, s2: 2 },
-      { tournament: 'VCT 2026: PACIFIC STAGE 2', team1: 'Team Secret', team2: 'Paper Rex', s1: 1, s2: 2 }
+      { tournament: 'VCT 2026: PACIFIC STAGE 2', team1: 'T1', team2: 'DetonatioN FocusMe', s1: 2, s2: 1, winnerIdx: 0 },
+      { tournament: 'VCT 2026: AMERICAS STAGE 2', team1: 'Evil Geniuses', team2: 'MIBR', s1: 2, s2: 0, winnerIdx: 0 },
+      { tournament: 'VCT 2026: AMERICAS STAGE 2', team1: 'Cloud9', team2: 'LOUD', s1: 1, s2: 2, winnerIdx: 1 },
+      { tournament: 'VCT 2026: EMEA STAGE 2', team1: 'GIANTX', team2: 'Team Heretics', s1: 0, s2: 2, winnerIdx: 1 },
+      { tournament: 'VCT 2026: EMEA STAGE 2', team1: 'BBL Esports', team2: 'Gentle Mates', s1: 2, s2: 1, winnerIdx: 0 },
+      { tournament: 'VCT 2026: PACIFIC STAGE 2', team1: 'Global Esports', team2: 'Gen.G', s1: 0, s2: 2, winnerIdx: 1 },
+      { tournament: 'VCT 2026: PACIFIC STAGE 2', team1: 'Team Secret', team2: 'Paper Rex', s1: 1, s2: 2, winnerIdx: 1 }
     ];
 
     function renderMatches(matches, isBackup = false) {
@@ -47,17 +47,9 @@
         const card = document.createElement('div');
         card.className = 'card';
 
-        // Determine winner
-        let team1Class = '';
-        let team2Class = '';
-
-        if (m.s1 > m.s2) {
-          team1Class = 'winner';
-          team2Class = 'loser';
-        } else if (m.s2 > m.s1) {
-          team1Class = 'loser';
-          team2Class = 'winner';
-        }
+        // Explicit winner assignment
+        const team1Class = (m.winnerIdx === 0) ? 'winner' : 'loser';
+        const team2Class = (m.winnerIdx === 1) ? 'winner' : 'loser';
 
         card.innerHTML = `
           <div class="tournament">
@@ -109,13 +101,20 @@
               let s1 = parseInt(team1Obj.score ?? m.score1 ?? 0, 10);
               let s2 = parseInt(team2Obj.score ?? m.score2 ?? 0, 10);
 
+              // Determine winner index based on object boolean or score comparison
+              let winnerIdx = -1;
+              if (team1Obj.is_winner || team1Obj.won) winnerIdx = 0;
+              else if (team2Obj.is_winner || team2Obj.won) winnerIdx = 1;
+              else winnerIdx = s1 > s2 ? 0 : (s2 > s1 ? 1 : -1);
+
               if (team1 && team2) {
                 parsed.push({
                   tournament: m.tournament || m.event || 'VCT Tournament',
                   team1,
                   team2,
                   s1,
-                  s2
+                  s2,
+                  winnerIdx
                 });
               }
             }
