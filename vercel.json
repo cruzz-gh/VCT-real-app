@@ -8,7 +8,11 @@
   ],
   "routes": [
     {
-      "src": "/(.*)",
+      "src": "/api/vct",
+      "dest": "api/vct.js"
+    },
+    {
+      "src": "/",
       "dest": "api/vct.js"
     }
   ]
