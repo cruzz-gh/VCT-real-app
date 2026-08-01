@@ -3,6 +3,22 @@ const cheerio = require('cheerio');
 
 const app = express();
 
+// 1. Home Route (so visiting https://vct-real-app.vercel.app works)
+app.get('/', (req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head><title>VCT API</title></head>
+    <body style="font-family: sans-serif; padding: 20px;">
+      <h1>VCT API is Running</h1>
+      <p>Access data at <a href="/api/vct">/api/vct</a></p>
+    </body>
+    </html>
+  `);
+});
+
+// 2. API Route (fetches live match results)
 app.get('/api/vct', async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
